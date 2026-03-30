@@ -11,7 +11,7 @@ import {
   debugLogger,
   type Config,
 } from '../index.js';
-import type { PartListUnion, Part } from '@google/genai';
+import type { PartListUnion } from '@google/genai';
 import { type GeminiClient } from '../core/client.js';
 import { saveTruncatedToolOutput } from '../utils/fileUtils.js';
 import {
@@ -24,12 +24,12 @@ import {
   TOOL_TRUNCATION_PREFIX,
   MIN_TARGET_TOKENS,
   estimateCharsFromTokens,
-} from './agentHistoryProvider.js';
+  normalizeFunctionResponse,
+} from '../utils/truncation.js';
 
 // Skip structural map generation for outputs larger than this threshold (in characters)
 // as it consumes excessive tokens and may not be representative of the full content.
 const MAX_DISTILLATION_SIZE = 1_000_000;
-const MIN_CHARS_FOR_TRUNCATION = 500;
 
 export interface DistilledToolOutput {
   truncatedContent: PartListUnion;
@@ -229,9 +229,10 @@ export class ToolOutputDistillationService {
       }
 
       if (part.functionResponse) {
-        return this.normalizeFunctionResponse(
+        return normalizeFunctionResponse(
           part,
           ratio,
+          0.2, // default headRatio
           savedPath,
           intentSummary,
         );
@@ -239,57 +240,6 @@ export class ToolOutputDistillationService {
 
       return part;
     });
-  }
-
-  private normalizeFunctionResponse(
-    part: Part,
-    ratio: number,
-    savedPath: string,
-    intentSummary: string,
-  ): Part {
-    const fr = part.functionResponse;
-    if (!fr || !fr.response) return part;
-
-    const responseObj = fr.response;
-    if (typeof responseObj !== 'object' || responseObj === null) return part;
-
-    const newResponse: Record<string, unknown> = {};
-    let hasChanges = false;
-
-    for (const [key, value] of Object.entries(responseObj)) {
-      if (
-        typeof value === 'string' &&
-        value.length > MIN_CHARS_FOR_TRUNCATION
-      ) {
-        const targetTokens = Math.max(
-          MIN_TARGET_TOKENS,
-          Math.floor((value.length / 4) * ratio),
-        );
-        const targetChars = estimateCharsFromTokens(value, targetTokens);
-
-        if (value.length > targetChars) {
-          newResponse[key] =
-            truncateProportionally(value, targetChars, TOOL_TRUNCATION_PREFIX) +
-            `\n\nFull output saved to: ${savedPath}` +
-            intentSummary;
-          hasChanges = true;
-          continue;
-        }
-      }
-      newResponse[key] = value;
-    }
-
-    if (!hasChanges) return part;
-
-    const newFr = {
-      // eslint-disable-next-line @typescript-eslint/no-misused-spread
-      ...fr,
-      response: newResponse,
-    };
-
-    return {
-      functionResponse: newFr,
-    };
   }
 
   /**

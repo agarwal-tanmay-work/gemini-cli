@@ -5,12 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  AgentHistoryProvider,
-  truncateProportionally,
-  TEXT_TRUNCATION_PREFIX,
-  TOOL_TRUNCATION_PREFIX,
-} from './agentHistoryProvider.js';
+import { AgentHistoryProvider } from './agentHistoryProvider.js';
 import { estimateTokenCountSync } from '../utils/tokenCalculation.js';
 
 vi.mock('../utils/tokenCalculation.js', () => ({
@@ -23,6 +18,11 @@ import type { Content, GenerateContentResponse, Part } from '@google/genai';
 import type { Config, ContextManagementConfig } from '../config/config.js';
 import type { BaseLlmClient } from '../core/baseLlmClient.js';
 import type { AgentHistoryProviderConfig } from './types.js';
+import {
+  TEXT_TRUNCATION_PREFIX,
+  TOOL_TRUNCATION_PREFIX,
+  truncateProportionally,
+} from 'src/utils/truncation.js';
 
 describe('AgentHistoryProvider', () => {
   let config: Config;

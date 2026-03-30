@@ -1155,7 +1155,7 @@ export class Config implements McpContext, AgentLoopContext {
     this.experimentalMemoryManager = params.experimentalMemoryManager ?? false;
     this.memoryBoundaryMarkers = params.memoryBoundaryMarkers ?? ['.git'];
     this.contextManagement = {
-      enabled: params.contextManagement?.enabled ?? true,
+      enabled: params.contextManagement?.enabled ?? false,
       historyWindow: {
         truncationThreshold:
           params.contextManagement?.historyWindow?.truncationThreshold ?? 25,
